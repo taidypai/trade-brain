@@ -110,6 +110,4 @@ end
 
 function OnStop()
     is_run = false
-
 end
-
