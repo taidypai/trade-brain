@@ -13,7 +13,7 @@ function main()
         {class = "SPBFUT", ticker = "GLDRUBF", code = "GLDRUBF"},
         {class = "SPBFUT", ticker = "IMOEXF", code = "IMOEXF"},
         {class = "SPBFUT", ticker = "VBZ5", code = "VTBR-12.25"},
-        {class = "SPBFUT", ticker = "NAZ5", code = "NASD-12.25"}
+        {class = "SPBFUT", ticker = "NAZ5", code = "NASD-12.25"},
         {class = "SPBFUT", ticker = "YDZ5", code = "YDEX-12.25"},
         {class = "SPBFUT", ticker = "GDZ5", code = "GOLD-12.25"},
         {class = "SPBFUT", ticker = "PTZ5", code = "PLT-12.25"}
@@ -112,3 +112,4 @@ function OnStop()
     is_run = false
 
 end
+
