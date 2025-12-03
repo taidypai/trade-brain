@@ -29,8 +29,7 @@ async def run_all_processes():
     tasks = [
         asyncio.create_task(liquid_main.liquidity_main(), name="liquidity"),
         asyncio.create_task(impuls_main.impuls_main(), name="impuls"),
-        asyncio.create_task(trade_main.trade_main(), name="trading"),
-        asyncio.create_task(run_bot.telegram_main(), name='trad_bot')
+        asyncio.create_task(trade_main.trade_main(), name="trading")
     ]
 
     # Бесконечно ждем (до прерывания пользователем)
