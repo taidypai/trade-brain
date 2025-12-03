@@ -16,7 +16,7 @@ function main()
         {class = "SPBFUT", ticker = "NAZ5", code = "NASD-12.25"}
         {class = "SPBFUT", ticker = "YDZ5", code = "YDEX-12.25"},
         {class = "SPBFUT", ticker = "GDZ5", code = "GOLD-12.25"},
-        {class = "SPBFUT", ticker = "PTZ5", code = "PLT-12.25"},
+        {class = "SPBFUT", ticker = "PTZ5", code = "PLT-12.25"}
     }
 
     while is_run do
@@ -110,4 +110,5 @@ end
 
 function OnStop()
     is_run = false
+
 end
