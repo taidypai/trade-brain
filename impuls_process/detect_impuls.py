@@ -1,29 +1,31 @@
 import requests
 import asyncio
+import json
 import os
 import sys
 from datetime import datetime
 
-sys.path.append(r"C:\Users\Вадим\Documents\python\trade-brain-main")
+
+sys.path.append(r"C:\Users\Administrator\Documents\trade-brain-main")
 import config
-from components.time_service import timeservice
+from components.time_service import TimeService
 from components.send_telegram_message import send_tg_message
 from components.get_price_action import get_price
 
-class Detector_liquid:
+class Detector_impuls:
     def __init__(self, timeframe):
         # Используем те же названия пар, что и в QUIK
         self.trading_pairs = config.TRADING_TIKERS
         self.candles = {}
         self.timeframe = timeframe
-        self.time_service = timeservice
+        self.time_service = TimeService()
+        self.impuls_candels = []
+
         # Создаем свечи для каждой пары
         for pair in self.trading_pairs:
             self.candles[pair] = {
                 'open': None,
-                'high': None,
-                'low': None,
-                'close': None
+                'high': None
             }
 
     def update_candle(self, pair, current_price):
@@ -33,54 +35,28 @@ class Detector_liquid:
         # Если это первое значение - инициализируем свечу
         if candle['open'] is None:
             candle['open'] = current_price
-            candle['high'] = current_price
-            candle['low'] = current_price
             candle['close'] = current_price
             return
-
-        # Обновляем максимум и минимум
-        if current_price > candle['high']:
-            candle['high'] = current_price
-        if current_price < candle['low']:
-            candle['low'] = current_price
 
         # Обновляем закрытие (текущая цена)
         candle['close'] = current_price
 
-    def check_liquidity_removal(self, pair):
-        """Проверяет снятие ликвидности для пары"""
+    def add_impuls_removal(self, pair):
+        """Проверяет импульс для пары"""
         candle = self.candles[pair]
 
         # Проверяем, что все значения инициализированы
-        if any(v is None for v in [candle['open'], candle['high'], candle['low'], candle['close']]):
+        if any(v is None for v in [candle['open'], candle['high']]):
             return False
 
         # Вычисляем тело свечи
-        body_size = abs(candle['close'] - candle['open'])
-
-        # Вычисляем нижний фитиль
-        if candle['close'] > candle['open']:  # Бычья свеча
-            lower_wick = candle['open'] - candle['low']
-        else:  # Медвежья свеча
-            lower_wick = candle['close'] - candle['low']
-
-        # Проверяем условие: нижний фитиль > тела свечи в 2 раза
-        # И нижний фитиль должен быть положительным (> 0)
-        if body_size > 0 and lower_wick > 0 and lower_wick >= 2*body_size:
-            print(f"[{self.timeframe}] снятие ликвидности: {pair}")
+        if abs(candle['close'] - candle['open']) < 0:
+            self.impuls_candels.append(1)
+        else:
+            self.impuls_candels.append(0)
+        print(self.impuls_candels)
+        if len(self.impuls_candels) == 4 and sum(impuls_down) >= 3:
             return True
-
-
-        return False
-
-    def analyze_all_pairs(self):
-        for pair in self.trading_pairs:
-            if self.check_liquidity_removal(pair): # Проверяем снятие ликвидности для текущей пары
-                candle = self.candles[pair]
-                message = f"✓ {pair} [{self.timeframe}] "
-                send_tg_message(message)
-                return True
-
         return False
 
     def reset_candle(self, pair):
@@ -94,21 +70,19 @@ class Detector_liquid:
 
     async def start_detection(self):
         """Основной цикл для всех пар на указанном таймфрейме"""
-        #Ждем начало новой свечи
+        # Ждем начало новой свечи
         wait_time = await self.time_service.get_time_to_candle_close(self.timeframe)
         if wait_time > 0:
             formatted_time = await self.time_service.format_time_remaining(wait_time)
             await asyncio.sleep(wait_time)
 
-        #Получаем начальную цену (открытие новой свечи)
+        # Получаем начальную цену (открытие новой свечи)
         start_prices = get_price()
 
         # Инициализируем свечи
         for pair in self.trading_pairs:
             if pair in start_prices:
                 self.candles[pair]['open'] = start_prices[pair]
-                self.candles[pair]['high'] = start_prices[pair]
-                self.candles[pair]['low'] = start_prices[pair]
                 self.candles[pair]['close'] = start_prices[pair]
 
         # Основной цикл обновления в течение свечи
@@ -116,6 +90,7 @@ class Detector_liquid:
         while True:
             # Получаем текущие цены
             current_prices = get_price()
+
             # Обновляем свечи для каждой пары
             for pair in self.trading_pairs:
                 if pair in current_prices:
@@ -123,17 +98,17 @@ class Detector_liquid:
 
             # Проверяем, не закончилась ли текущая свеча
             time_remaining = await self.time_service.get_time_to_candle_close(self.timeframe)
+
             # Если до конца свечи осталось меньше 1 секунды - завершаем свечу
             if time_remaining <= 1:
                 time_remaining = 0
-
-                self.analyze_all_pairs()
-
+                print(F'Таймфрейм {self.timeframe} закончился ')
+                if self.add_impuls_removal(pair):
+                    message = f"Резкий импульс ✓ {pair} [{self.timeframe}]"
+                    send_tg_message(message)
+                    self.impuls_candels = self.impuls_candels[1:]
                 # Сбрасываем свечи для следующего периода
                 for pair in self.trading_pairs:
                     self.reset_candle(pair)
-
+                # Ждем 1 секунду перед следующим обновлением
             await asyncio.sleep(1)
-
-
-
