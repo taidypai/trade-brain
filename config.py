@@ -1,7 +1,0 @@
-quik_path = ""
-quik_password = ""
-quik_account_number = ""
-finam_api_token = ""
-finam_api_account_id = ""
-TELEGRAM_BOT_TOKEN = ""
-TELEGRAM_CHAT_ID = ""
